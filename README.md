@@ -74,4 +74,6 @@ media/                Manim build output + voice cache (git-ignored)
 ## Episodes
 | Episode | Topic | Status |
 |---|---|---|
-| `kmeans` | K-means clustering | ✅ done |
+| `kmeans` | K-means clustering (3D) | ✅ done |
+| `house_robber` | House Robber (LeetCode 198), explained without code | ✅ done |
+| `em` | EM / Gaussian mixtures, and why they beat K-means | ✅ done |
