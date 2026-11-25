@@ -4,9 +4,14 @@
         self.play(..., run_time=t.get_remaining_duration())
 
 - The text is spoken AND shown as word-synced captions (one source of truth).
-- *asterisks* mark emphasized words (bold white + blue selection box).
+- *asterisks* mark emphasized words (bold + accent color).
 - Animations inside the block run while the line is spoken; the block
   ends when the line finishes.
+
+It's a ThreeDScene, so episodes can use 3D (set_camera_orientation, Dot3D,
+ambient rotation...). Captions and labels are pinned to the screen. For other
+2D overlays in a 3D episode, call self.overlay(mob) before animating it.
+With the default camera, 2D episodes work exactly as usual.
 
     self.set_label("Round 2 · Assign")   # small outlined status badge under the visual
 """
@@ -15,20 +20,29 @@ from __future__ import annotations
 from contextlib import contextmanager
 from pathlib import Path
 
-from manim import FadeIn, FadeOut
+from manim import FadeIn, FadeOut, ThreeDScene
 from manim_voiceover import VoiceoverScene
 
 from .captions import CaptionTrack, assign_times, chunk_words, load_alignment, parse_words, strip_marks
-from .style import SAFE_CENTER_X, LABEL_Y, badge
+from .style import SAFE_CENTER_X, LABEL_Y, badge, background_image
 from .voice import get_voice
 
 
-class EpisodeScene(VoiceoverScene):
+class EpisodeScene(VoiceoverScene, ThreeDScene):
     def setup(self):
         super().setup()
+        cam = self.camera
+        cam.background_image = background_image(cam.pixel_width, cam.pixel_height)
+        cam.init_background()
+        cam.reset()
         self.set_speech_service(get_voice())
         self._captions = None
         self._label = None
+
+    def overlay(self, *mobs):
+        """Pin 2D mobjects to the screen (unaffected by the 3D camera)."""
+        self.add_fixed_in_frame_mobjects(*mobs)
+        return mobs[0] if len(mobs) == 1 else mobs
 
     # ------------------------------------------------------------ narration
     @contextmanager
@@ -37,11 +51,9 @@ class EpisodeScene(VoiceoverScene):
         with self.voiceover(text=strip_marks(text)) as tracker:
             audio = Path(tracker.cache_dir) / tracker.data["original_audio"]
             assign_times(words, tracker.duration, load_alignment(audio), len(strip_marks(text)))
-            if self._captions is not None:
-                self._captions.clear_updaters()
-                self.remove(self._captions)
+            self.clear_captions()
             self._captions = CaptionTrack(chunk_words(words))
-            self.add(self._captions)
+            self.overlay(self._captions)
             yield tracker
         self._captions.clear_updaters()
 
@@ -60,6 +72,7 @@ class EpisodeScene(VoiceoverScene):
         self._label = None
         if text:
             self._label = badge(text, **kw).move_to([SAFE_CENTER_X, LABEL_Y, 0])
+            self.overlay(self._label)
             anims.append(FadeIn(self._label))
         return anims
 

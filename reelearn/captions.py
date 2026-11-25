@@ -4,7 +4,7 @@ The narration text is the caption text. Mark emphasized words with *asterisks*:
 
     "Every point joins the *closest* centroid."
 
-Emphasized words render bold white with a blue selection box; the rest are gray.
+Emphasized words render bold in the accent color (EMPH); the rest are light and regular weight.
 Words appear exactly when they are spoken, in short chunks (≤ 2 lines).
 """
 from __future__ import annotations
@@ -15,10 +15,10 @@ import html
 from dataclasses import dataclass
 from pathlib import Path
 
-from manim import VGroup, Rectangle, Dot, MarkupText, DOWN
+from manim import VGroup, MarkupText, DOWN
 
 from .style import (
-    FONT, FG, MUTED, SELECT, CAPTION_Y, CAPTION_SIZE, CAPTION_LINE_CHARS, CAPTION_MAX_LINES, SAFE_CENTER_X,
+    FONT, EMPH, MUTED, CAPTION_Y, CAPTION_SIZE, CAPTION_LINE_CHARS, CAPTION_MAX_LINES, SAFE_CENTER_X,
 )
 
 
@@ -97,24 +97,13 @@ def _lines(words: list[Word]) -> list[list[Word]]:
     return lines
 
 
-def selection_box(m):
-    """Figma-style selection: thin blue rectangle with corner handles."""
-    rect = Rectangle(width=m.width + 0.24, height=m.height + 0.2,
-                     stroke_color=SELECT, stroke_width=3).move_to(m)
-    handles = VGroup(*[
-        Dot(c, radius=0.055, color=SELECT).set_stroke(FG, width=1.5)
-        for c in (rect.get_corner([-1, 1, 0]), rect.get_corner([1, -1, 0]))
-    ])
-    return VGroup(rect, handles)
-
-
 def _span(w: Word) -> str:
-    color, weight = (FG, "bold") if w.emph else (MUTED, "medium")
+    color, weight = (EMPH, "bold") if w.emph else (MUTED, "medium")
     return f'<span foreground="{color}" font_weight="{weight}">{html.escape(w.text, quote=False)}</span>'
 
 
 def build_chunk(words: list[Word]):
-    """Returns [(start_time, mobject, is_box)] for one chunk, laid out and centered.
+    """Returns [(start_time, mobject)] for one chunk, laid out and centered.
 
     Each line is one MarkupText (shared baseline + kerning), then sliced into
     per-word glyph groups so words can appear individually.
@@ -131,13 +120,7 @@ def build_chunk(words: list[Word]):
         lines.add(mt)
         per_line.append(groups)
     lines.arrange(DOWN, buff=0.22).move_to([SAFE_CENTER_X, CAPTION_Y, 0])
-    out = []
-    for groups in per_line:
-        for w, g in groups:
-            out.append((w.start, g, False))
-            if w.emph:
-                out.append((w.start, selection_box(g), True))
-    return out
+    return [(w.start, g) for groups in per_line for w, g in groups]
 
 
 def _set_alpha(m, a):
@@ -164,10 +147,10 @@ class CaptionTrack(VGroup):
     def __init__(self, chunks: list[list[Word]]):
         super().__init__()
         self.elapsed = 0.0
-        self.items = []  # (chunk_index, word_start, mobject, is_box)
+        self.items = []  # (chunk_index, word_start, mobject)
         for ci, c in enumerate(chunks):
-            for start, m, is_box in build_chunk(c):
-                self.items.append((ci, start, m, is_box))
+            for start, m in build_chunk(c):
+                self.items.append((ci, start, m))
                 self.add(m)
         self.chunk_starts = [c[0].start for c in chunks]
         self.add_updater(lambda m, dt: m._tick(dt))
@@ -177,13 +160,9 @@ class CaptionTrack(VGroup):
         self.elapsed += dt
         t = self.elapsed + 1e-3
         current = max([i for i, s in enumerate(self.chunk_starts) if s <= t], default=-1)
-        for ci, start, m, is_box in self.items:
-            if ci != current:
-                a = 0.0
-            elif start <= t:
-                a = 1.0
-            else:
-                a = 0.0 if is_box else UPCOMING_ALPHA  # whole chunk visible (stays centered); unspoken words faint
+        for ci, start, m in self.items:
+            # whole chunk visible (stays centered); unspoken words faint
+            a = 0.0 if ci != current else (1.0 if start <= t else UPCOMING_ALPHA)
             _set_alpha(m, a)
 
 

@@ -1,8 +1,9 @@
 """Narration voices.
 
-`get_voice()` picks the speech service:
-  - ElevenLabs when ELEVENLABS_API_KEY is set (in .env or the environment)
-  - gTTS (free, robotic) otherwise, or when REELEARN_VOICE=draft
+`get_voice()` picks the speech service (REELEARN_VOICE, set by make.sh):
+  - elevenlabs: real voice; needs ELEVENLABS_API_KEY in .env
+  - offline:    never calls the API; reuses cached real-voice lines, gTTS timing for new ones
+  - draft:      gTTS only (free, robotic)
 
 Audio is cached under media/voiceovers/, keyed by text + voice + model,
 so re-rendering an unchanged line never calls the API again. ElevenLabs lines
@@ -44,11 +45,16 @@ VOICE_SETTINGS = {
 class ElevenLabsTTS(SpeechService):
     """Minimal ElevenLabs service using the current REST API."""
 
-    def __init__(self, api_key: str, voice_id: str, model: str = DEFAULT_MODEL, **kwargs):
+    def __init__(self, api_key: str, voice_id: str, model: str = DEFAULT_MODEL,
+                 offline: bool = False, **kwargs):
+        """offline=True never calls the API: cached lines are reused (free),
+        uncached lines fall back to the gTTS draft voice for timing."""
         self.api_key = api_key
         self.voice_id = voice_id
         self.model = model
+        self.offline = offline
         super().__init__(**kwargs)
+        self._fallback = GTTSService(lang="en", tld="com", cache_dir=self.cache_dir) if offline else None
 
     def generate_from_text(self, text, cache_dir=None, path=None, **kwargs):
         cache_dir = Path(cache_dir or self.cache_dir)
@@ -62,6 +68,9 @@ class ElevenLabsTTS(SpeechService):
         cached = self.get_cached_result(input_data, cache_dir)
         if cached is not None:
             return cached
+        if self.offline:
+            logger.info(f"Not cached, using draft voice for timing: {input_text[:40]}...")
+            return self._fallback.generate_from_text(text, cache_dir=cache_dir, path=path, **kwargs)
 
         audio_path = str(path) if path else self.get_audio_basename(input_data) + ".mp3"
         resp = requests.post(
@@ -82,10 +91,14 @@ class ElevenLabsTTS(SpeechService):
 
 
 def get_voice() -> SpeechService:
+    """REELEARN_VOICE: elevenlabs (default when a key is set) | offline | draft."""
     mode = os.getenv("REELEARN_VOICE", "auto").lower()
     key = os.getenv("ELEVENLABS_API_KEY", "").strip()
+    voice_id = os.getenv("ELEVENLABS_VOICE_ID", DEFAULT_VOICE_ID)
+    if mode == "offline":
+        logger.info("Narration: offline (cached ElevenLabs lines, gTTS timing for the rest, no API calls)")
+        return ElevenLabsTTS(api_key=key, voice_id=voice_id, offline=True)
     if mode != "draft" and key:
-        voice_id = os.getenv("ELEVENLABS_VOICE_ID", DEFAULT_VOICE_ID)
         logger.info(f"Narration: ElevenLabs voice {voice_id}")
         return ElevenLabsTTS(api_key=key, voice_id=voice_id)
     if mode == "elevenlabs":

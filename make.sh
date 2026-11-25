@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Render an episode.
-#   ./make.sh <episode> [draft|preview|final]
+#   ./make.sh <episode> [silent|draft|preview|final]
 #
+#   silent   720x1280 @30fps, no audio, no API credits             → out/<ep>-silent.mp4
 #   draft    540x960 @15fps, free robotic voice (no API credits)  → out/<ep>-draft.mp4
 #   preview  540x960 @15fps, ElevenLabs voice                     → out/<ep>-preview.mp4
 #   final    1080x1920 @30fps, ElevenLabs voice (default)         → out/<ep>.mp4
@@ -10,15 +11,16 @@
 # only pay for lines whose text changed.
 set -euo pipefail
 cd "$(dirname "$0")"
-ep="${1:?usage: ./make.sh <episode> [draft|preview|final]}"
+ep="${1:?usage: ./make.sh <episode> [silent|draft|preview|final]}"
 mode="${2:-final}"
 [[ -f "episodes/$ep.py" ]] || { echo "no such episode: episodes/$ep.py"; exit 1; }
 
 case "$mode" in
+  silent)  flags=(-qm -r 720,1280 --frame_rate 30);   export REELEARN_VOICE=offline;    suffix="-silent" ;;
   draft)   flags=(-ql -r 540,960 --frame_rate 15);   export REELEARN_VOICE=draft;      suffix="-draft" ;;
   preview) flags=(-ql -r 540,960 --frame_rate 15);   export REELEARN_VOICE=elevenlabs; suffix="-preview" ;;
   final)   flags=(-qh -r 1080,1920 --frame_rate 30); export REELEARN_VOICE=elevenlabs; suffix="" ;;
-  *) echo "mode must be draft, preview or final"; exit 1 ;;
+  *) echo "mode must be silent, draft, preview or final"; exit 1 ;;
 esac
 
 export PYTHONWARNINGS=ignore
@@ -28,5 +30,9 @@ export PYTHONWARNINGS=ignore
 latest=$(ls -1t media/videos/"$ep"/*/*.mp4 2>/dev/null | head -1)
 [[ -n "$latest" && "$latest" -nt "episodes/$ep.py" ]] || { echo "render failed"; exit 1; }
 mkdir -p out
-cp "$latest" "out/$ep$suffix.mp4"
+if [[ $mode == silent ]]; then
+  .venv/bin/python -m reelearn.strip_audio "$latest" "out/$ep$suffix.mp4"
+else
+  cp "$latest" "out/$ep$suffix.mp4"
+fi
 echo "→ out/$ep$suffix.mp4"

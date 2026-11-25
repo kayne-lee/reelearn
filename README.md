@@ -2,8 +2,8 @@
 
 Narrated, code-animated short-form learning videos (Reels / TikTok / Shorts), built with
 [Manim](https://www.manim.community/) and [ElevenLabs](https://elevenlabs.io) voices.
-Every episode is one Python file. Every video gets the same look: black, minimal, vertical 9:16, with captions
-synced word by word to the narration.
+Every episode is one Python file. Every video gets the same look: a deep gradient background, 3D visuals with a slow
+camera orbit, vertical 9:16, and captions synced word by word to the narration.
 
 ## One-time setup
 
@@ -44,6 +44,7 @@ Delivery is tuned in `VOICE_SETTINGS` in `reelearn/voice.py`.
 
 ## Making a video
 ```bash
+./make.sh kmeans silent    # no audio, no API credits, 720p: check the visuals
 ./make.sh kmeans draft     # free robotic voice, low-res: check timing and layout
 ./make.sh kmeans preview   # real voice, low-res
 ./make.sh kmeans           # real voice, 1080x1920 → out/kmeans.mp4 (upload this)
@@ -55,15 +56,15 @@ Voice lines are cached in `media/voiceovers/`. Re-rendering only calls ElevenLab
 with self.narrate("Every point joins the *closest* centroid.") as t:
     self.play(..., run_time=t.get_remaining_duration())
 ```
-What's spoken is exactly what's captioned. `*asterisks*` mark emphasized words. They show bold white with a
-blue selection box and aren't spoken differently.
+What's spoken is exactly what's captioned. `*asterisks*` mark emphasized words. They show bold in the accent color
+and aren't spoken differently.
 
 ## Layout
 ```
 episodes/<name>.py    one episode = one EpisodeScene subclass (script + visuals)
-reelearn/scene.py     EpisodeScene base: narrate(), set_label()
-reelearn/captions.py  word-synced captions (*emphasis* → bold + selection box)
-reelearn/style.py     colors, font, layout constants, badge()
+reelearn/scene.py     EpisodeScene base (3D-capable): narrate(), set_label(), overlay()
+reelearn/captions.py  word-synced captions (*emphasis* → bold + accent color)
+reelearn/style.py     colors, gradient background, font, layout constants, badge()
 reelearn/voice.py     ElevenLabs TTS with per-character timestamps (+ free gTTS draft)
 make.sh               render entry point (draft | preview | final)
 out/                  finished MP4s (git-ignored)
