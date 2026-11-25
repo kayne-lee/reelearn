@@ -2,7 +2,8 @@
 
 Narrated, code-animated short-form learning videos (Reels / TikTok / Shorts), built with
 [Manim](https://www.manim.community/) and [ElevenLabs](https://elevenlabs.io) voices.
-Every episode is one Python file. Every video gets the same look: vertical 9:16, kept inside the safe zone, with captions burned in.
+Every episode is one Python file. Every video gets the same look: black, minimal, vertical 9:16, with captions
+synced word by word to the narration.
 
 ## One-time setup
 
@@ -49,12 +50,21 @@ Delivery is tuned in `VOICE_SETTINGS` in `reelearn/voice.py`.
 ```
 Voice lines are cached in `media/voiceovers/`. Re-rendering only calls ElevenLabs for lines whose text changed.
 
+## Writing narration
+```python
+with self.narrate("Every point joins the *closest* centroid.") as t:
+    self.play(..., run_time=t.get_remaining_duration())
+```
+What's spoken is exactly what's captioned. `*asterisks*` mark emphasized words. They show bold white with a
+blue selection box and aren't spoken differently.
+
 ## Layout
 ```
 episodes/<name>.py    one episode = one EpisodeScene subclass (script + visuals)
-reelearn/scene.py     EpisodeScene base: narrate(), set_tag(), title_card()
-reelearn/style.py     colors, fonts, safe area, caption()/pill() helpers
-reelearn/voice.py     ElevenLabs service (+ free gTTS draft fallback)
+reelearn/scene.py     EpisodeScene base: narrate(), set_label()
+reelearn/captions.py  word-synced captions (*emphasis* → bold + selection box)
+reelearn/style.py     colors, font, layout constants, badge()
+reelearn/voice.py     ElevenLabs TTS with per-character timestamps (+ free gTTS draft)
 make.sh               render entry point (draft | preview | final)
 out/                  finished MP4s (git-ignored)
 media/                Manim build output + voice cache (git-ignored)

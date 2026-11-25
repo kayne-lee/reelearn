@@ -5,10 +5,13 @@
   - gTTS (free, robotic) otherwise, or when REELEARN_VOICE=draft
 
 Audio is cached under media/voiceovers/, keyed by text + voice + model,
-so re-rendering an unchanged line never calls the API again.
+so re-rendering an unchanged line never calls the API again. ElevenLabs lines
+also save <audio>.align.json (per-character timings) for synced captions.
 """
 from __future__ import annotations
 
+import base64
+import json
 import os
 from pathlib import Path
 
@@ -53,7 +56,8 @@ class ElevenLabsTTS(SpeechService):
         input_data = {
             "input_text": input_text,
             "service": "elevenlabs",
-            "config": {"voice_id": self.voice_id, "model": self.model, "settings": VOICE_SETTINGS},
+            "config": {"voice_id": self.voice_id, "model": self.model, "settings": VOICE_SETTINGS,
+                       "timestamps": True},
         }
         cached = self.get_cached_result(input_data, cache_dir)
         if cached is not None:
@@ -61,7 +65,7 @@ class ElevenLabsTTS(SpeechService):
 
         audio_path = str(path) if path else self.get_audio_basename(input_data) + ".mp3"
         resp = requests.post(
-            f"https://api.elevenlabs.io/v1/text-to-speech/{self.voice_id}",
+            f"https://api.elevenlabs.io/v1/text-to-speech/{self.voice_id}/with-timestamps",
             params={"output_format": "mp3_44100_128"},
             headers={"xi-api-key": self.api_key, "Content-Type": "application/json"},
             json={"text": input_text, "model_id": self.model, "voice_settings": VOICE_SETTINGS},
@@ -69,7 +73,11 @@ class ElevenLabsTTS(SpeechService):
         )
         if resp.status_code != 200:
             raise RuntimeError(f"ElevenLabs error {resp.status_code}: {resp.text[:300]}")
-        (cache_dir / audio_path).write_bytes(resp.content)
+        body = resp.json()
+        out = cache_dir / audio_path
+        out.write_bytes(base64.b64decode(body["audio_base64"]))
+        # Per-character timings drive the word-synced captions (see captions.py).
+        out.with_suffix(".align.json").write_text(json.dumps(body["alignment"]))
         return {"input_text": text, "input_data": input_data, "original_audio": audio_path}
 
 
