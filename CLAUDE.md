@@ -19,7 +19,7 @@ follow the structure below exactly. Don't add one-off scripts or loose files, an
    end with a "follow for more" line.
 3. Wrap each beat in `with self.narrate("spoken line", caption_text="short\ncaption") as t:` and size
    animations to `t.get_remaining_duration()` / `t.duration`. Give long spoken lines a short `caption_text`
-   (≤ 3 lines, ~28 chars each), because auto-wrapped long captions get shrunk.
+   (≤ 3 lines, ~22 chars each), because auto-wrapped long captions get shrunk.
 4. Make visuals truthful: compute them (e.g. actually run the algorithm with numpy). Never fake the math.
 5. Render `./make.sh <slug> draft` (free, no API credits), extract frames, and check layout before using credits.
 6. Then `./make.sh <slug>` for the final. Commit the episode file and the README update together.
@@ -27,7 +27,13 @@ follow the structure below exactly. Don't add one-off scripts or loose files, an
 ## Layout rules
 - Frame is 9 × 16 units (1080×1920). Keep text inside the SAFE_* bounds in `style.py`: nothing important
   below y = -4.6 or right of x = 3.4, where the platforms put their buttons and captions.
+- Everything centers on x = 0 (`SAFE_CENTER_X`). The safe area is symmetric (±3.4). After building a visual,
+  center it with `.set_x(SAFE_CENTER_X)`, because data clouds are rarely symmetric.
 - Title at `TITLE_Y`, status pill at `TAG_Y`, captions at `CAPTION_Y`, main visual in between.
+- Capitalization: titles and pills in Title Case ("K-Means", "Step 1 · Assign", "Converged"), never ALL CAPS.
+  Captions use sentence case.
+- Captions: size 44, at most 3 lines of about 22 characters, so every caption renders at the same size. Check widths
+  against `SAFE_RIGHT - SAFE_LEFT` before rendering.
 
 ## Gotchas
 - Manim's `-ql`/`-qh` flags reset resolution to landscape. `make.sh` passes `-r` explicitly; keep it that way.
