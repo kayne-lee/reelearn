@@ -11,10 +11,13 @@ follow the structure below exactly. Don't add one-off scripts or loose files, an
 - `episodes/<slug>.py`: one file per episode, with one `EpisodeScene` subclass. The narration script lives
   inline as `self.narrate(...)` calls, so the script and the visuals stay in one place.
 - `reelearn/`: the shared library. Anything reusable across episodes goes here, not in an episode:
-  - `scene.py`: `EpisodeScene`, a 3D-capable scene (`narrate`, `set_label`/`label_anims`, `overlay`, `clear_captions`)
+  - `scene.py`: `EpisodeScene`, a 3D-capable scene (`narrate`, `set_label`/`label_anims`, `overlay`, `billboard`,
+    `begin_camera_sway`, `clear_captions`; set `self.label_y` to move the status badge for one episode)
   - `captions.py`: word-synced captions (parsing `*emphasis*`, chunking, timing, `CaptionTrack`)
   - `style.py`: palette, font, layout constants, `badge()`, gradient `background_image()`
-  - `voice.py`: ElevenLabs TTS with per-character timestamps; offline mode (cache only) and a gTTS fallback
+  - `voice.py`: ElevenLabs TTS with per-character timestamps; offline mode (cache only) and a gTTS fallback.
+    Pace comes from ElevenLabs' own `speed` setting in `VOICE_SETTINGS` (1.12), never from speeding up the video.
+    Changing any voice setting re-bills every line of every episode.
   - `strip_audio.py`: used by `make.sh silent`
 - `make.sh <slug> [silent|draft|preview|final]` is the only render entry point. Finished file → `out/<slug>.mp4`.
 - Update the **Episodes** table in `README.md` whenever an episode is added or changes status.
@@ -35,8 +38,12 @@ white boring, so color comes from `style.py`.
 
 ## Making a new episode
 1. Copy the shape of `episodes/kmeans.py`: imports, data at the top, then `class X(EpisodeScene)`.
-2. Script: hook in the first 2 s, one idea per video, 30–60 s total, end with a "follow for more" line.
+2. Script: one idea per video, 30–60 s total, end with a "follow for more" line. Keep lines short and punchy.
    Mark 1–2 key words per sentence with `*asterisks*` (they're stripped before TTS).
+   **The hook matters most.** The first line (≤ 2 s) must make a claim or tension, never a definition:
+   show the payoff ("This two-step trick finds hidden groups…"), call out a trap ("the obvious answer is
+   *wrong*"), or show a failure ("K-means gets this *completely wrong*"). The hook's visual is moving from
+   frame 0 (e.g. the real final answer previewed, then rewound).
 3. Wrap each beat in `with self.narrate("Spoken *line*.") as t:` and size the animations inside to
    `t.get_remaining_duration()`. **The spoken text IS the caption.** Never show different on-screen text than
    what's spoken.

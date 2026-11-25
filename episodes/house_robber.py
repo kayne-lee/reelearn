@@ -106,11 +106,21 @@ class HouseRobber(EpisodeScene):
         def reset_houses():
             return [h[0].animate.set_fill(HOUSE_COLOR, 1) for h in houses]
 
-        # 1. hook: rob two neighbors, alarm
-        with self.narrate("You're a robber on a street of houses. Rob two *neighbors,* and the alarm goes off. "
-                          "What's the *most* you can take?") as t:
+        # 1. hook: the "obvious" answer, lit up from frame 0, then marked wrong
+        with self.narrate("This interview question looks easy, but the obvious answer is *wrong.*") as t:
+            self.play(*paint([1, 3, 5], ROBBED), *[cash[i].animate.set_color(ROBBED).scale(1.25) for i in (1, 3, 5)],
+                      *self.label_anims("Every Other House?", color=EMPH, stroke=EMPH), run_time=0.4)
+            self.wait(max(0, t.get_remaining_duration() - 0.9))
+            self.play(*paint([1, 3, 5], ALARM), *[cash[i].animate.set_color(ALARM) for i in (1, 3, 5)],
+                      *self.label_anims("Not The Best", color=ALARM, stroke=ALARM), run_time=0.5)
+
+        # 2. the rules: rob two neighbors, alarm
+        with self.narrate("You're robbing a street. Rob two *neighbors,* and the alarm goes off. "
+                          "Get the *most* cash.") as t:
+            self.play(*reset_houses(), *[cash[i].animate.set_color(FG).scale(1 / 1.25) for i in (1, 3, 5)],
+                      *self.label_anims(None), run_time=0.4)
             budget = t.get_remaining_duration()
-            self.wait(budget * 0.3)
+            self.wait(budget * 0.15)
             self.play(*paint([1, 2], ROBBED), run_time=0.4)
             rings = VGroup(*[Circle(radius=0.75, color=ALARM, stroke_width=6).move_to([XS[i], 0, 0.5])
                              .rotate(PI / 2, RIGHT) for i in (1, 2)])
@@ -118,25 +128,27 @@ class HouseRobber(EpisodeScene):
                       *paint([1, 2], ALARM), FadeIn(rings, scale=0.6), run_time=0.6)
             self.play(FadeOut(rings, scale=1.4), *reset_houses(), run_time=0.6)
 
-        # 2. every-other fails
-        with self.narrate("Grabbing every other house gives *twelve,* or *fourteen.* But neither is the best.") as t:
+        # 3. every-other fails
+        with self.narrate("Every other house gives *twelve,* or *fourteen.* The best is actually *fifteen.*") as t:
             budget = t.get_remaining_duration()
-            self.play(*paint([0, 2, 4], ROBBED), run_time=0.4)
-            self.set_label(f"2 + 9 + 1 = {EVENS}", color=EMPH, stroke=EMPH)
-            self.wait(budget * 0.25)
+            self.play(*paint([0, 2, 4], ROBBED), *self.label_anims(f"2 + 9 + 1 = {EVENS}", color=EMPH, stroke=EMPH),
+                      run_time=0.4)
+            self.wait(budget * 0.15)
             self.play(*reset_houses(), run_time=0.3)
             self.play(*paint([1, 3, 5], ROBBED), *self.label_anims(f"7 + 3 + 4 = {ODDS}", color=EMPH, stroke=EMPH),
                       run_time=0.4)
-            self.wait(max(0, t.get_remaining_duration() - 0.6))
-            self.play(*reset_houses(), *self.label_anims(None), run_time=0.4)
+            self.wait(budget * 0.15)
+            self.play(*reset_houses(), *self.label_anims(f"Best = {BEST[-1]}", color=TALLY, stroke=TALLY), run_time=0.4)
+            self.wait(max(0, t.get_remaining_duration() - 0.4))
+            self.play(*self.label_anims(None), run_time=0.3)
 
-        # 3. the trick: a running tally under each house
+        # 4. the trick: a running tally under each house
         tallies = [tally_badge(i) for i in range(N)]
         self.billboard(*tallies)
         for b in tallies:
             self.remove(b)
-        with self.narrate("Here's the trick: walk the street *one house at a time,* "
-                          "and write down the best haul so far.") as t:
+        with self.narrate("The trick: walk the street *one house at a time,* "
+                          "and track the best haul so far.") as t:
             self.play(LaggedStart(*[FadeIn(b, shift=UP * 0.2) for b in tallies], lag_ratio=0.12),
                       run_time=min(1.6, t.get_remaining_duration()))
             self.set_label("Best haul so far", color=TALLY, stroke=TALLY)
@@ -149,7 +161,7 @@ class HouseRobber(EpisodeScene):
             return [FadeOut(old, scale=0.8), FadeIn(new, scale=1.3)]
 
         # 4. first two houses
-        with self.narrate("House one: take the *two.* House two: seven beats two, so the best is *seven.*") as t:
+        with self.narrate("House one: *two.* House two: seven beats two, so *seven.*") as t:
             half = t.get_remaining_duration() / 2
             self.play(*paint([0], ROBBED), *fill(0), run_time=0.5)
             self.wait(max(0, half - 0.5))
@@ -157,7 +169,7 @@ class HouseRobber(EpisodeScene):
         self.play(*reset_houses(), run_time=0.3)
 
         # 5-6. the two choices, shown on house three
-        with self.narrate("At each new house, you have *two choices.*"):
+        with self.narrate("At each house, you have *two choices.*"):
             self.play(Indicate(houses[2], color=EMPH, scale_factor=1.15), *self.label_anims("House 3", color=EMPH, stroke=EMPH),
                       run_time=0.8)
 
@@ -179,7 +191,7 @@ class HouseRobber(EpisodeScene):
         self.play(*reset_houses(), run_time=0.3)
 
         # 8. the rest, quickly
-        with self.narrate("Keep going. Eleven. Twelve. And at the last house, four plus eleven makes *fifteen.*") as t:
+        with self.narrate("Keep going. Eleven. Twelve. Last house: four plus eleven, *fifteen.*") as t:
             per = t.get_remaining_duration() / 3
             for i in range(3, N):
                 skip, rob = BEST[i - 1], CASH[i] + BEST[i - 2]
@@ -192,7 +204,7 @@ class HouseRobber(EpisodeScene):
                 self.play(houses[i][0].animate.set_fill(HOUSE_COLOR, 1), run_time=0.25)
 
         # 9. trace back the chosen houses
-        with self.narrate("Trace it back, and you robbed the houses worth *two, nine, and four.*") as t:
+        with self.narrate("Trace it back: houses worth *two, nine, and four.*") as t:
             others = [i for i in range(N) if i not in PICKS]
             self.play(*paint(PICKS, ROBBED),
                       *[houses[i].animate.set_opacity(0.35) for i in others],

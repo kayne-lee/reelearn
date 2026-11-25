@@ -34,11 +34,14 @@ DEFAULT_VOICE_ID = "nPczCjzI2devNBz1zQrb"
 DEFAULT_MODEL = "eleven_multilingual_v2"
 
 # Lower stability = more expressive; higher = more consistent/neutral.
+# speed: ElevenLabs' own delivery pace (0.7-1.2). The voice really talks faster; the video isn't sped up.
+# Changing any setting here re-voices (and re-bills) every line.
 VOICE_SETTINGS = {
     "stability": 0.5,
     "similarity_boost": 0.8,
     "style": 0.15,
     "use_speaker_boost": True,
+    "speed": 1.12,
 }
 
 

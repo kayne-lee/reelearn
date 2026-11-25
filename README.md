@@ -30,7 +30,8 @@ uv pip install -r requirements.txt
 
 ### 3. Pick the narrator (optional)
 The default is **Brian**, a deep, steady American voice that works well for instruction. To change it, set
-`ELEVENLABS_VOICE_ID` in `.env`. Some other good options:
+`ELEVENLABS_VOICE_ID` in `.env`. Talking pace is ElevenLabs' `speed` setting in `reelearn/voice.py` (1.12, a bit
+quicker than normal); changing it re-voices every line. Some other good options:
 
 | Voice | ID | Character |
 |---|---|---|
@@ -77,3 +78,4 @@ media/                Manim build output + voice cache (git-ignored)
 | `kmeans` | K-means clustering (3D) | ✅ done |
 | `house_robber` | House Robber (LeetCode 198), explained without code | ✅ done |
 | `em` | EM / Gaussian mixtures, and why they beat K-means | ✅ done |
+| `e_means` | e-means, Meta's faster K-means (Faiss 1.16) | ✅ done |

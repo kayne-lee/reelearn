@@ -123,43 +123,43 @@ class EM(EpisodeScene):
         self.add(grid, dots)
         self.begin_camera_sway(amplitude=8 * DEGREES, period=16)
 
-        # 1-2. K-means' blind spot
-        with self.narrate("K-means has a *blind spot.* It thinks every cluster is a *round ball.*") as t:
-            self.set_label("K-means", color=PALETTE[0], stroke=PALETTE[0])
-            rings = VGroup(*[Circle(radius=np.percentile(np.linalg.norm(X[KM_LAB == k] - KM_C[k], axis=1), 85),
-                                    color=COLORS[k], stroke_width=5).move_to(p3(KM_C[k], 0.02)) for k in range(K)])
+        # 1. hook: K-means' real (wrong) answer is on screen from frame 0
+        wrong = [j for j in range(n) if KM_LAB[j] != TRUTH[j]]  # cluster ids line up with INIT order
+        rings = VGroup(*[Circle(radius=np.percentile(np.linalg.norm(X[KM_LAB == k] - KM_C[k], axis=1), 85),
+                                color=COLORS[k], stroke_width=5).move_to(p3(KM_C[k], 0.02)) for k in range(K)])
+        with self.narrate("K-means gets this *completely wrong.* Here's the algorithm that doesn't.") as t:
             self.play(*[d.animate.set_color(COLORS[KM_LAB[j]]) for j, d in enumerate(dots)],
-                      run_time=min(1.2, t.get_remaining_duration()))
-            self.play(LaggedStart(*[Create(r) for r in rings], lag_ratio=0.25),
-                      run_time=min(1.2, t.get_remaining_duration()))
-
-        with self.narrate("Give it *stretched* groups like these, and it slices them in the *wrong places.*") as t:
-            wrong = [j for j in range(n) if KM_LAB[j] != TRUTH[j]]  # cluster ids line up with INIT order
-            self.play(LaggedStart(*[Indicate(dots[j], scale_factor=2.2, color=WHITE) for j in wrong], lag_ratio=0.03),
+                      LaggedStart(*[Create(r) for r in rings], lag_ratio=0.2),
                       *self.label_anims(f"K-means: {accuracy(KM_LAB):.0%} right", color=PALETTE[0], stroke=PALETTE[0]),
-                      run_time=min(2.0, t.get_remaining_duration()))
+                      run_time=min(0.8, t.get_remaining_duration()))
+            self.play(LaggedStart(*[Indicate(dots[j], scale_factor=2.2, color=WHITE) for j in wrong], lag_ratio=0.03),
+                      run_time=min(1.5, t.get_remaining_duration()))
+
+        # 2. why: it assumes round balls
+        with self.narrate("It assumes every cluster is a *round ball,* so it slices stretched groups in the *wrong places.*"):
+            pass
 
         # 3-4. enter EM: blobs with shape
         M0, S0, _, R0 = HIST[0]
         ells = VGroup(*[ellipse(M0[k], S0[k], COLORS[k]) for k in range(K)])
-        with self.narrate("Enter *EM,* short for Expectation-Maximization.") as t:
+        with self.narrate("Enter *EM:* Expectation Maximization.") as t:
             self.play(FadeOut(rings), *[d.animate.set_color(FG) for d in dots],
                       *self.label_anims("EM", color=EMPH, stroke=EMPH), run_time=min(1.0, t.get_remaining_duration()))
 
-        with self.narrate("Each cluster becomes a *blob* with a center, a *shape,* and a size.") as t:
+        with self.narrate("Each cluster is a *blob* with a center, a *shape,* and a size.") as t:
             self.play(LaggedStart(*[Create(e) for e in ells], lag_ratio=0.25),
                       run_time=min(1.5, t.get_remaining_duration()))
 
         # 5. E-step: soft blends
-        with self.narrate("Step one, *expectation:* every point gets a *probability* for each blob. "
-                          "Not a hard choice, a *blend.*") as t:
+        with self.narrate("Step one, *expectation:* each point gets a *probability* for every blob. "
+                          "A *blend,* not a hard choice.") as t:
             self.set_label("Step 1 · Expectation", color=EMPH, stroke=EMPH)
             self.play(LaggedStart(*[d.animate.set_color(blend(R0[j])) for j, d in enumerate(dots)], lag_ratio=0.01),
                       run_time=min(2.0, t.get_remaining_duration()))
 
         # 6. M-step: blobs reshape
         M1, S1, _, R1 = HIST[1]
-        with self.narrate("Step two, *maximization:* each blob *stretches* and moves to fit the points that belong to it.") as t:
+        with self.narrate("Step two, *maximization:* each blob *stretches* and moves to fit its points.") as t:
             self.set_label("Step 2 · Maximization", color=PALETTE[1], stroke=PALETTE[1])
             self.play(*[Transform(ells[k], ellipse(M1[k], S1[k], COLORS[k])) for k in range(K)],
                       run_time=min(2.0, t.get_remaining_duration()))
@@ -180,7 +180,7 @@ class EM(EpisodeScene):
         peak = max(hill_height(Mf[k], Sf[k], pif[k], Mf[k], 1.0) for k in range(K))
         hills = [hill(Mf[k], Sf[k], pif[k], COLORS[k], scale=1.8 / peak) for k in range(K)]
         flats = [h.copy().stretch(0.01, 2, about_point=ORIGIN) for h in hills]
-        with self.narrate("Stack those blobs up, and you get a *map of probability.*") as t:
+        with self.narrate("Stack them up, and you get a *map of probability.*") as t:
             self.stop_ambient_camera_rotation()
             self.play(*self.label_anims(None), FadeOut(ells), run_time=0.4)
             self.add(*flats)
@@ -190,7 +190,7 @@ class EM(EpisodeScene):
         self.begin_ambient_camera_rotation(rate=0.18)
 
         # 9-10. why it's better, and the catch
-        with self.narrate("So EM handles *stretched* clusters, different sizes, and tells you how *confident* it is."):
+        with self.narrate("EM handles *stretched* clusters, different sizes, and tells you how *confident* it is."):
             pass
         with self.narrate("The catch: it's *slower,* and you still pick *K.*"):
             pass

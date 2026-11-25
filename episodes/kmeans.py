@@ -74,24 +74,36 @@ class KMeans(EpisodeScene):
         self.add(ground, dots)                      # on screen from frame 0
         self.begin_ambient_camera_rotation(rate=ORBIT_RATE)
 
-        # 1. hook
-        with self.narrate("Here's a pile of data with *no labels.* "
-                          "How does a computer find the *groups* on its own?") as t:
-            self.play(LaggedStart(*[Indicate(d, scale_factor=1.8, color=EMPH) for d in dots], lag_ratio=0.02),
-                      run_time=min(2.2, t.get_remaining_duration()))
+        Cf, final = HISTORY[-1]
 
-        # 2. pick K, drop centroids
-        with self.narrate("This is *K-means.* First, you pick *K,* the number of groups. Let's use *three.*"):
-            pass
+        def bubbles_for(labels, C):
+            return VGroup(*[
+                Sphere(center=C[k], radius=np.percentile(np.linalg.norm(points[labels == k] - C[k], axis=1), 80) + 0.15,
+                       resolution=(16, 16)).set_color(PALETTE[k]).set_opacity(0.13)
+                for k in range(K)
+            ])
+
+        # 1. hook: show the payoff first (the real converged answer), then rewind
+        with self.narrate("This *two-step* trick finds hidden groups in data. No labels needed.") as t:
+            preview = bubbles_for(final, Cf)
+            self.play(*[d.animate.set_color(PALETTE[final[j]]) for j, d in enumerate(dots)],
+                      LaggedStart(*[FadeIn(b, scale=0.6) for b in preview], lag_ratio=0.2),
+                      run_time=min(1.0, t.get_remaining_duration()))
+
+        # 2. rewind, pick K
+        with self.narrate("It's called *K-means.* Start with unlabeled points, and pick *K,* "
+                          "how many groups you want. Say *three.*") as t:
+            self.play(FadeOut(preview), *[d.animate.set_color(FG) for d in dots],
+                      run_time=min(0.8, t.get_remaining_duration()))
 
         C0, labels0 = HISTORY[0]
         cents = VGroup(*[centroid(C0[k], PALETTE[k]) for k in range(K)])
-        with self.narrate("Then drop three *centroids* at random. Think of them as group centers.") as t:
+        with self.narrate("Drop three *centroids* at random.") as t:
             self.play(LaggedStart(*[GrowFromCenter(c) for c in cents], lag_ratio=0.3),
                       run_time=min(1.5, t.get_remaining_duration()))
 
         # 3. assign, shown slowly once
-        with self.narrate("Step one: *assign.* Every point joins whichever centroid is *closest.*") as t:
+        with self.narrate("Step one: *assign.* Every point joins its *closest* centroid.") as t:
             self.set_label("Round 1 · Assign")
             i = int(np.argmin(np.linalg.norm(points - np.array([0.8, -0.6, 0.2]), axis=1)))
             demo = dots[i]
@@ -122,7 +134,7 @@ class KMeans(EpisodeScene):
             self.play(FadeOut(spokes), run_time=budget * 0.15)
 
         # 5. repeat quickly
-        with self.narrate("Then *repeat.* Assign, update. Assign, update.") as t:
+        with self.narrate("*Repeat.* Assign, update. Assign, update.") as t:
             steps = len(HISTORY) - 1
             per = t.get_remaining_duration() / max(1, 2 * steps - 1)
             for r in range(1, len(HISTORY)):
@@ -137,13 +149,8 @@ class KMeans(EpisodeScene):
                               run_time=per)
 
         # 6. converged: a translucent bubble around each cluster
-        Cf, final = HISTORY[-1]
-        bubbles = VGroup(*[
-            Sphere(center=Cf[k], radius=np.percentile(np.linalg.norm(points[final == k] - Cf[k], axis=1), 80) + 0.15,
-                   resolution=(16, 16)).set_color(PALETTE[k]).set_opacity(0.13)
-            for k in range(K)
-        ])
-        with self.narrate("When no point switches groups, it's *converged.* Those are your *clusters.*") as t:
+        bubbles = bubbles_for(final, Cf)
+        with self.narrate("When nothing changes, it's *converged.* Those are your *clusters.*") as t:
             self.set_label("Converged", color=PALETTE[1], stroke=PALETTE[1])
             self.play(LaggedStart(*[FadeIn(b, scale=0.6) for b in bubbles], lag_ratio=0.25),
                       run_time=min(1.6, t.get_remaining_duration()))
@@ -157,14 +164,14 @@ class KMeans(EpisodeScene):
         self.overlay(a, u, top_arc, bot_arc)
         for m in (a, u, top_arc, bot_arc):
             self.remove(m)  # registered as overlays; revealed by the animations below
-        with self.narrate("That's the whole algorithm. Two steps, on a *loop,* until nothing moves.") as t:
+        with self.narrate("Two steps, on a *loop.* That's the whole algorithm.") as t:
             self.play(*self.label_anims(None), FadeOut(ground),
                       VGroup(dots, cents, bubbles).animate.scale(0.62, about_point=ORIGIN).shift(OUT * 1.6),
                       run_time=0.8)
             self.play(FadeIn(a, shift=UP * 0.2), FadeIn(u, shift=UP * 0.2), run_time=0.4)
             self.play(Create(top_arc), Create(bot_arc), run_time=min(0.9, t.get_remaining_duration()))
 
-        with self.narrate("One catch: *you* choose K, and a *bad start* can lead to a worse answer."):
+        with self.narrate("The catch: *you* choose K, and a *bad start* can mislead it."):
             pass
 
         # 8. outro
