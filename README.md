@@ -16,7 +16,7 @@ uv pip install -r requirements.txt
 1. Sign up at [elevenlabs.io](https://elevenlabs.io). The free tier (~10k characters/month) covers several
    videos. One ~45 s episode uses about 700 characters. Note that the free tier requires attribution and doesn't
    allow commercial use. If you monetize, use a paid plan (Starter or higher).
-2. Click your profile (bottom-left) → **API Keys** → **Create API Key**.
+2. Go to [elevenlabs.io/app/developers/api-keys](https://elevenlabs.io/app/developers/api-keys) (sidebar: **Developers** → **API Keys**) → **Create API Key**.
    - Name it `reelearn`.
    - Permissions: enable **Text to Speech** (that's all this repo needs).
    - Optional: set a monthly character limit as a safety cap.
