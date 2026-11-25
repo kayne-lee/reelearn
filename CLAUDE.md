@@ -52,7 +52,11 @@ white boring, so color comes from `style.py`.
    where it exists and falls back to free gTTS timing. For quick layout checks, render tiny:
    `REELEARN_VOICE=offline .venv/bin/manim -ql -r 270,480 --frame_rate 10 episodes/<slug>.py`.
    The user is saving credits: **don't run `preview`/`final` (ElevenLabs) unless they ask for audio.**
-6. Then `./make.sh <slug>` for the final. Commit the episode file and the README update together.
+6. **Review gate:** send the user the silent render (`out/<slug>-silent.mp4`) and stop. Only after they approve
+   it, run `./make.sh <slug>` (ElevenLabs) for the final. Commit the episode file and the README update together.
+
+The user's usual request is just a topic ("make one on X"). Turn it into a hooked script in the house style
+(gradient + 3D, word-synced captions, Brian at speed 1.12, follow-for-more outro), then follow the steps above.
 
 ## Layout rules
 - Frame is 9 × 16 units (1080×1920). Safe area is symmetric: x in ±3.4, y between -4.6 and 7.2.
