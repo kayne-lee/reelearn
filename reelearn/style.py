@@ -19,21 +19,21 @@ FONT = "Avenir Next"
 # Safe area (scene units)
 SAFE_TOP = 7.2
 SAFE_BOTTOM = -4.6
-SAFE_LEFT = -4.0
+SAFE_LEFT = -3.4  # symmetric with SAFE_RIGHT so everything centers on x = 0
 SAFE_RIGHT = 3.4
 SAFE_CENTER_X = (SAFE_LEFT + SAFE_RIGHT) / 2
 
 CAPTION_Y = -3.6
 TITLE_Y = 6.3
 TAG_Y = 5.0
-CAPTION_CHARS = 30  # wrap width for auto-wrapped captions
+CAPTION_CHARS = 22  # wrap width for auto-wrapped captions (fits SAFE width at size 44)
 
 
 def T(s, size=48, color=FG, weight="BOLD", **kw):
     return Text(s, font=FONT, font_size=size, color=color, weight=weight, **kw)
 
 
-def caption(s, size=46, color=FG):
+def caption(s, size=44, color=FG):
     """Big centered on-screen caption, wrapped manually with \\n."""
     lines = VGroup(*[T(line, size=size, color=color) for line in s.split("\n")])
     lines.arrange(DOWN, buff=0.18)
