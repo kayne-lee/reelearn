@@ -77,5 +77,4 @@ media/                Manim build output + voice cache (git-ignored)
 |---|---|---|
 | `kmeans` | K-means clustering (3D) | ✅ done |
 | `house_robber` | House Robber (LeetCode 198), explained without code | ✅ done |
-| `em` | EM / Gaussian mixtures, and why they beat K-means | ✅ done |
 | `e_means` | e-means, Meta's faster K-means (Faiss 1.16) | ✅ done |
