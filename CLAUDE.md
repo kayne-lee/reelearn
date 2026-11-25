@@ -75,5 +75,7 @@ The user's usual request is just a topic ("make one on X"). Turn it into a hooke
   breaks the baseline (descenders shift words up).
 - Swapping text with `Transform` garbles letters. Fade out/in instead (that's what `label_anims` does).
 - The ElevenLabs key lives in `.env` (git-ignored). Never print it or commit it.
+- Terms the voice mispronounces go in `PRONOUNCE` in `captions.py` (e.g. "K-means" → "Kmeans", otherwise it says
+  "K, means"). Only the TTS text changes; the caption keeps the written form and word timing is remapped.
 - The voice cache is keyed on text + voice + model + settings. Changing a line re-bills only that line.
   `*` markers are stripped first, so adding or moving emphasis costs nothing.

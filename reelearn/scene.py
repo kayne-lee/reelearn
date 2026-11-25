@@ -25,7 +25,7 @@ import numpy as np
 from manim import DEGREES, FadeIn, FadeOut, ThreeDScene
 from manim_voiceover import VoiceoverScene
 
-from .captions import CaptionTrack, assign_times, chunk_words, load_alignment, parse_words, strip_marks
+from .captions import CaptionTrack, assign_times, chunk_words, load_alignment, parse_words, pronounce, strip_marks
 from .style import SAFE_CENTER_X, LABEL_Y, badge, background_image
 from .voice import get_voice
 
@@ -68,9 +68,12 @@ class EpisodeScene(VoiceoverScene, ThreeDScene):
     @contextmanager
     def narrate(self, text: str):
         words = parse_words(text)
-        with self.voiceover(text=strip_marks(text)) as tracker:
+        spoken, index = pronounce(strip_marks(text))  # e.g. "K-means" is voiced as "Kmeans"
+        for w in words:
+            w.char_start = index[w.char_start]
+        with self.voiceover(text=spoken) as tracker:
             audio = Path(tracker.cache_dir) / tracker.data["original_audio"]
-            assign_times(words, tracker.duration, load_alignment(audio), len(strip_marks(text)))
+            assign_times(words, tracker.duration, load_alignment(audio), len(spoken))
             self.clear_captions()
             self._captions = CaptionTrack(chunk_words(words))
             self.overlay(self._captions)

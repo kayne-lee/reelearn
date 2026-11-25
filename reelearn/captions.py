@@ -27,6 +27,29 @@ def strip_marks(text: str) -> str:
     return text.replace("*", "")
 
 
+# How the voice should say a term. Captions keep the written form; only the TTS text changes.
+# ("K-means" with a hyphen comes out as "K, means"; "Kmeans" reads as one word.)
+PRONOUNCE = {"K-means": "Kmeans"}
+_PRONOUNCE_RE = re.compile("|".join(map(re.escape, PRONOUNCE)))
+
+
+def pronounce(clean: str) -> tuple[str, list[int]]:
+    """Text to send to TTS, plus index[i] = where caption char i lands in it (for word timing)."""
+    spoken, index, pos = "", [], 0
+    for m in _PRONOUNCE_RE.finditer(clean):
+        for ch in clean[pos:m.start()]:
+            index.append(len(spoken))
+            spoken += ch
+        index.extend([len(spoken)] * len(m.group()))  # the whole term starts where its spoken form starts
+        spoken += PRONOUNCE[m.group()]
+        pos = m.end()
+    for ch in clean[pos:]:
+        index.append(len(spoken))
+        spoken += ch
+    index.append(len(spoken))
+    return spoken, index
+
+
 @dataclass
 class Word:
     text: str          # without markers
