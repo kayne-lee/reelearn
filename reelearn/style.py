@@ -25,6 +25,8 @@ SAFE_CENTER_X = (SAFE_LEFT + SAFE_RIGHT) / 2
 
 CAPTION_Y = -3.6
 TITLE_Y = 6.3
+TAG_Y = 5.0
+CAPTION_CHARS = 30  # wrap width for auto-wrapped captions
 
 
 def T(s, size=48, color=FG, weight="BOLD", **kw):
