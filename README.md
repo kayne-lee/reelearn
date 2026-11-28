@@ -78,3 +78,4 @@ media/                Manim build output + voice cache (git-ignored)
 | `kmeans` | K-means clustering (3D) | ✅ done |
 | `house_robber` | House Robber (LeetCode 198), explained without code | ✅ done |
 | `e_means` | e-means, Meta's faster K-means (Faiss 1.16) | ✅ done |
+| `millennium` | Millennium Prize Problems, $1M bounties, and the AI race (as of Nov 2026) | ✅ done |

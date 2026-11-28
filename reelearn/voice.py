@@ -3,6 +3,7 @@
 `get_voice()` picks the speech service (REELEARN_VOICE, set by make.sh):
   - elevenlabs: real voice; needs ELEVENLABS_API_KEY in .env
   - offline:    never calls the API; reuses cached real-voice lines, gTTS timing for new ones
+                (sped up by DRAFT_TEMPO so silent renders run at the real voice's pace)
   - draft:      gTTS only (free, robotic)
 
 Audio is cached under media/voiceovers/, keyed by text + voice + model,
@@ -45,6 +46,49 @@ VOICE_SETTINGS = {
 }
 
 
+# gTTS talks ~1.31x slower than Brian at speed 1.12 (median over 43 lines voiced both ways).
+# Offline renders speed up the gTTS timing track by this much, so silent previews match the final pace.
+DRAFT_TEMPO = 1.31
+
+
+def _tempo_copy(src: Path, tempo: float) -> Path:
+    """WAV copy of src played `tempo` times faster (pitch kept). Cached next to src."""
+    dst = src.with_name(f"{src.stem}-x{tempo:g}.wav")
+    if dst.exists():
+        return dst
+    import av
+
+    with av.open(str(src)) as inp, av.open(str(dst), "w") as out:
+        ist = inp.streams.audio[0]
+        ost = out.add_stream("pcm_s16le", rate=ist.rate, layout=ist.layout.name)
+        graph = av.filter.Graph()
+        chain = [graph.add_abuffer(template=ist), graph.add("atempo", str(tempo)),
+                 graph.add("aformat", f"sample_fmts=s16:channel_layouts={ist.layout.name}"),
+                 graph.add("abuffersink")]
+        for a, b in zip(chain, chain[1:]):
+            a.link_to(b)
+        graph.configure()
+
+        def drain():
+            while True:
+                try:
+                    frame = graph.pull()
+                except (av.BlockingIOError, av.EOFError):
+                    return
+                frame.pts = None
+                for packet in ost.encode(frame):
+                    out.mux(packet)
+
+        for frame in inp.decode(ist):
+            graph.push(frame)
+            drain()
+        graph.push(None)
+        drain()
+        for packet in ost.encode(None):
+            out.mux(packet)
+    return dst
+
+
 class ElevenLabsTTS(SpeechService):
     """Minimal ElevenLabs service using the current REST API."""
 
@@ -73,7 +117,10 @@ class ElevenLabsTTS(SpeechService):
             return cached
         if self.offline:
             logger.info(f"Not cached, using draft voice for timing: {input_text[:40]}...")
-            return self._fallback.generate_from_text(text, cache_dir=cache_dir, path=path, **kwargs)
+            result = dict(self._fallback.generate_from_text(text, cache_dir=cache_dir, path=path, **kwargs))
+            fast = _tempo_copy(cache_dir / result["original_audio"], DRAFT_TEMPO)
+            result["original_audio"] = fast.name
+            return result
 
         audio_path = str(path) if path else self.get_audio_basename(input_data) + ".mp3"
         resp = requests.post(
